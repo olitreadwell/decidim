@@ -33,6 +33,8 @@ module Decidim::Meetings
     let(:reminder_enabled) { true }
     let(:send_reminders_before_hours) { 50 }
     let(:reminder_message_custom_content) { { "en" => "Custom reminder message!", "es" => "Mensaje de recordatorio personalizado", "ca" => "Missatge de recordatori personalitzat" } }
+    let(:description) { { en: "description" } }
+    let(:title) { { en: "title" } }
     let(:taxonomizations) do
       2.times.map { build(:taxonomization, taxonomy: create(:taxonomy, :with_parent, organization:), taxonomizable: nil) }
     end
@@ -40,8 +42,8 @@ module Decidim::Meetings
     let(:form) do
       double(
         invalid?: invalid,
-        title: { en: "title" },
-        description: { en: "description" },
+        title:,
+        description:,
         location: { en: "location" },
         location_hints: { en: "location_hints" },
         start_time: 1.day.from_now,
@@ -122,40 +124,7 @@ module Decidim::Meetings
 
       context "when title has a user mention" do
         let(:mentioned_user) { create(:user, :confirmed, organization:) }
-        let(:form) do
-          double(
-            invalid?: invalid,
-            title: { en: "title mentioning @#{mentioned_user.nickname}" },
-            description:,
-            location: { en: "location" },
-            location_hints: { en: "location_hints" },
-            start_time: 1.day.from_now,
-            end_time: 1.day.from_now + 1.hour,
-            taxonomizations:,
-            address:,
-            latitude:,
-            longitude:,
-            private_meeting:,
-            transparent:,
-            services_to_persist:,
-            current_user: user,
-            current_organization: organization,
-            registration_type:,
-            registration_url:,
-            registrations_enabled:,
-            clean_type_of_meeting: type_of_meeting,
-            online_meeting_url:,
-            iframe_embed_type:,
-            comments_enabled: true,
-            comments_start_time: nil,
-            comments_end_time: nil,
-            reminder_enabled:,
-            send_reminders_before_hours:,
-            reminder_message_custom_content:,
-            iframe_access_level:,
-            components:
-          )
-        end
+        let(:title) { { en: "title mentioning @#{mentioned_user.nickname}" } }
 
         it "does not rewrite the mention to the mentioned user GID" do
           subject.call

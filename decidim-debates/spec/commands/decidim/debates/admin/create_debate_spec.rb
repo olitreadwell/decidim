@@ -11,14 +11,16 @@ describe Decidim::Debates::Admin::CreateDebate do
   let(:user) { create(:user, :admin, :confirmed, organization:) }
   let(:comments_layout) { "single_column" }
   let(:attachments) { [] }
+  let(:description) { { en: "description" } }
+  let(:title) { { en: "title" } }
   let(:taxonomizations) do
     2.times.map { build(:taxonomization, taxonomy: create(:taxonomy, :with_parent, organization:), taxonomizable: nil) }
   end
   let(:form) do
     double(
       invalid?: invalid,
-      title: { en: "title" },
-      description: { en: "description" },
+      title:,
+      description:,
       information_updates: { en: "information updates" },
       instructions: { en: "instructions" },
       start_time: 1.day.from_now,
@@ -103,28 +105,7 @@ describe Decidim::Debates::Admin::CreateDebate do
 
     context "when title has a user mention" do
       let(:mentioned_user) { create(:user, :confirmed, organization:) }
-      let(:form) do
-        double(
-          invalid?: invalid,
-          title: { en: "title mentioning @#{mentioned_user.nickname}" },
-          description:,
-          information_updates: { en: "information updates" },
-          instructions: { en: "instructions" },
-          start_time: 1.day.from_now,
-          end_time: 1.day.from_now + 1.hour,
-          taxonomizations:,
-          current_user: user,
-          current_component:,
-          component: current_component,
-          current_organization: organization,
-          finite:,
-          comments_enabled: true,
-          comments_layout:,
-          add_documents: attachments,
-          documents: [],
-          errors: ActiveModel::Errors.new(self)
-        )
-      end
+      let(:title) { { en: "title mentioning @#{mentioned_user.nickname}" } }
 
       it "does not rewrite the mention to the mentioned user GID" do
         subject.call

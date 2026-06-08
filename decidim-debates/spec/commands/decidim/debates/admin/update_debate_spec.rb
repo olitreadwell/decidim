@@ -15,12 +15,14 @@ describe Decidim::Debates::Admin::UpdateDebate do
     2.times.map { build(:taxonomization, taxonomy: create(:taxonomy, :with_parent, organization:), taxonomizable: nil) }
   end
   let(:comments_layout) { "two_columns" }
+  let(:description) { { en: "description" } }
+  let(:title) { { en: "title" } }
   let(:form) do
     double(
       invalid?: invalid,
       current_user: user,
-      title: { en: "title" },
-      description: { en: "description" },
+      title:,
+      description:,
       information_updates: { en: "information_updates" },
       instructions: { en: "instructions" },
       start_time: 1.day.from_now,
@@ -68,26 +70,7 @@ describe Decidim::Debates::Admin::UpdateDebate do
 
     context "when title has a user mention" do
       let(:mentioned_user) { create(:user, :confirmed, organization:) }
-      let(:form) do
-        double(
-          invalid?: invalid,
-          current_user: user,
-          title: { en: "title mentioning @#{mentioned_user.nickname}" },
-          description:,
-          information_updates: { en: "information_updates" },
-          instructions: { en: "instructions" },
-          start_time: 1.day.from_now,
-          end_time: 1.day.from_now + 1.hour,
-          taxonomizations:,
-          current_organization: organization,
-          comments_enabled: true,
-          comments_layout:,
-          attachment: attachment_params,
-          add_documents: uploaded_files,
-          documents: current_files,
-          errors: ActiveModel::Errors.new(self)
-        )
-      end
+      let(:title) { { en: "title mentioning @#{mentioned_user.nickname}" } }
 
       it "does not rewrite the mention to the mentioned user GID" do
         subject.call
