@@ -90,6 +90,50 @@ describe Decidim::Debates::Admin::CreateDebate do
       expect(debate.author).to eq(organization)
     end
 
+    context "when description has a user mention" do
+      let(:mentioned_user) { create(:user, :confirmed, organization:) }
+      let(:description) { { en: "description mentioning @#{mentioned_user.nickname}" } }
+
+      it "rewrites the mention to the mentioned user GID" do
+        subject.call
+
+        expect(debate.description.values.join(" ")).to include(mentioned_user.to_global_id.to_s)
+      end
+    end
+
+    context "when title has a user mention" do
+      let(:mentioned_user) { create(:user, :confirmed, organization:) }
+      let(:form) do
+        double(
+          invalid?: invalid,
+          title: { en: "title mentioning @#{mentioned_user.nickname}" },
+          description:,
+          information_updates: { en: "information updates" },
+          instructions: { en: "instructions" },
+          start_time: 1.day.from_now,
+          end_time: 1.day.from_now + 1.hour,
+          taxonomizations:,
+          current_user: user,
+          current_component:,
+          component: current_component,
+          current_organization: organization,
+          finite:,
+          comments_enabled: true,
+          comments_layout:,
+          add_documents: attachments,
+          documents: [],
+          errors: ActiveModel::Errors.new(self)
+        )
+      end
+
+      it "does not rewrite the mention to the mentioned user GID" do
+        subject.call
+
+        expect(debate.title.values.join(" ")).not_to include(mentioned_user.to_global_id.to_s)
+        expect(debate.title.values.join(" ")).to include("@#{mentioned_user.nickname}")
+      end
+    end
+
     it "traces the action", versioning: true do
       expect(Decidim.traceability)
         .to receive(:create!)

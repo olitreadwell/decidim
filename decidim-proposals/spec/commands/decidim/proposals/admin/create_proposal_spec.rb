@@ -124,6 +124,55 @@ module Decidim
               end
             end
 
+            context "when title has a user mention" do
+              let(:mentioned_user) { create(:user, :confirmed, organization:) }
+              let(:form_params) do
+                {
+                  title: { en: "A reasonable title mentioning @#{mentioned_user.nickname}" },
+                  body: { en: "A reasonable proposal body" },
+                  address:,
+                  has_address:,
+                  attachment: attachment_params,
+                  documents: current_files,
+                  add_documents: uploaded_files,
+                  created_in_meeting:,
+                  meeting_id:
+                }
+              end
+
+              it "does not rewrite the mention to the mentioned user GID" do
+                command.call
+                proposal = Decidim::Proposals::Proposal.last
+
+                expect(proposal.title.values.join(" ")).not_to include(mentioned_user.to_global_id.to_s)
+                expect(proposal.title.values.join(" ")).to include("@#{mentioned_user.nickname}")
+              end
+            end
+
+            context "when body has a user mention" do
+              let(:mentioned_user) { create(:user, :confirmed, organization:) }
+              let(:form_params) do
+                {
+                  title: { en: "A reasonable proposal title" },
+                  body: { en: "A reasonable body mentioning @#{mentioned_user.nickname}" },
+                  address:,
+                  has_address:,
+                  attachment: attachment_params,
+                  documents: current_files,
+                  add_documents: uploaded_files,
+                  created_in_meeting:,
+                  meeting_id:
+                }
+              end
+
+              it "rewrites the mention to the mentioned user GID" do
+                command.call
+                proposal = Decidim::Proposals::Proposal.last
+
+                expect(proposal.body.values.join(" ")).to include(mentioned_user.to_global_id.to_s)
+              end
+            end
+
             it "traces the action", versioning: true do
               expect(Decidim.traceability)
                 .to receive(:perform_action!)

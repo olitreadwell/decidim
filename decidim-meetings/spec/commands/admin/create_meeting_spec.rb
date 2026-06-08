@@ -151,6 +151,64 @@ module Decidim::Meetings
         expect(meeting.component).to eq current_component
       end
 
+      context "when description has a user mention" do
+        let(:mentioned_user) { create(:user, :confirmed, organization:) }
+        let(:description) { { en: "description mentioning @#{mentioned_user.nickname}" } }
+
+        it "rewrites the mention to the mentioned user GID" do
+          subject.call
+
+          expect(meeting.description.values.join(" ")).to include(mentioned_user.to_global_id.to_s)
+        end
+      end
+
+      context "when title has a user mention" do
+        let(:mentioned_user) { create(:user, :confirmed, organization:) }
+        let(:form) do
+          double(
+            invalid?: invalid,
+            title: { en: "title mentioning @#{mentioned_user.nickname}" },
+            description:,
+            location: { en: "location" },
+            location_hints: { en: "location_hints" },
+            start_time:,
+            end_time: 1.day.from_now + 1.hour,
+            address:,
+            latitude:,
+            longitude:,
+            taxonomizations:,
+            private_meeting:,
+            transparent:,
+            services_to_persist:,
+            current_user:,
+            current_component:,
+            component: current_component,
+            current_organization: organization,
+            registration_type:,
+            registration_url:,
+            registrations_enabled:,
+            clean_type_of_meeting: type_of_meeting,
+            online_meeting_url:,
+            iframe_embed_type:,
+            comments_enabled: true,
+            comments_start_time: nil,
+            comments_end_time: nil,
+            iframe_access_level:,
+            components:,
+            reminder_enabled:,
+            send_reminders_before_hours:,
+            reminder_message_custom_content:
+          )
+        end
+
+        it "does not rewrite the mention to the mentioned user GID" do
+          subject.call
+
+          expect(meeting.title.values.join(" ")).not_to include(mentioned_user.to_global_id.to_s)
+          expect(meeting.title.values.join(" ")).to include("@#{mentioned_user.nickname}")
+        end
+      end
+
       it "sets the longitude and latitude" do
         subject.call
         last_meeting = Meeting.last

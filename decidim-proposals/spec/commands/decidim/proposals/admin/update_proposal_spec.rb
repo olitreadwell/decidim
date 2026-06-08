@@ -144,6 +144,51 @@ describe Decidim::Proposals::Admin::UpdateProposal do
         end
       end
 
+      context "when title has a user mention" do
+        let(:mentioned_user) { create(:user, :confirmed, organization:) }
+        let(:form_params) do
+          {
+            title: { en: "A reasonable title mentioning @#{mentioned_user.nickname}" },
+            body: { en: "A reasonable proposal body" },
+            address:,
+            has_address:,
+            attachment: attachment_params,
+            documents: current_files,
+            add_documents: uploaded_files
+          }
+        end
+
+        it "does not rewrite the mention to the mentioned user GID" do
+          command.call
+          proposal.reload
+
+          expect(proposal.title.values.join(" ")).not_to include(mentioned_user.to_global_id.to_s)
+          expect(proposal.title.values.join(" ")).to include("@#{mentioned_user.nickname}")
+        end
+      end
+
+      context "when body has a user mention" do
+        let(:mentioned_user) { create(:user, :confirmed, organization:) }
+        let(:form_params) do
+          {
+            title: { en: "A reasonable proposal title" },
+            body: { en: "A reasonable body mentioning @#{mentioned_user.nickname}" },
+            address:,
+            has_address:,
+            attachment: attachment_params,
+            documents: current_files,
+            add_documents: uploaded_files
+          }
+        end
+
+        it "rewrites the mention to the mentioned user GID" do
+          command.call
+          proposal.reload
+
+          expect(proposal.body.values.join(" ")).to include(mentioned_user.to_global_id.to_s)
+        end
+      end
+
       context "when galleries are allowed" do
         it_behaves_like "admin manages resource gallery for resources" do
           let(:component) { create(:proposal_component, :with_attachments_allowed) }
