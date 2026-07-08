@@ -32,10 +32,13 @@ describe Decidim::Proposals::Admin::UpdateProposal do
   let(:current_files) { [file] }
 
   describe "call" do
+    let(:body) { { en: "A reasonable proposal body" } }
+    let(:title) { { en: "A reasonable proposal title" } }
+
     let(:form_params) do
       {
-        title: { en: "A reasonable proposal title" },
-        body: { en: "A reasonable proposal body" },
+        title:,
+        body:,
         address:,
         has_address:,
         attachment: attachment_params,
@@ -86,6 +89,43 @@ describe Decidim::Proposals::Admin::UpdateProposal do
         action_log = Decidim::ActionLog.last
         expect(action_log.version).to be_present
         expect(action_log.version.event).to eq "update"
+      end
+
+      context "when title has a user mention" do
+        let(:mentioned_user) { create(:user, :confirmed, organization:) }
+        let(:title) { { en: "A reasonable title mentioning @#{mentioned_user.nickname}" } }
+
+        it "does not rewrite the mention to the mentioned user GID" do
+          command.call
+          proposal.reload
+
+          expect(proposal.title.values.join(" ")).not_to include(mentioned_user.to_global_id.to_s)
+          expect(proposal.title.values.join(" ")).to include("@#{mentioned_user.nickname}")
+        end
+      end
+
+      context "when body has a user mention" do
+        let(:mentioned_user) { create(:user, :confirmed, organization:) }
+        let(:body) { { en: "A reasonable proposal body mentioning @#{mentioned_user.nickname}" } }
+
+        it "rewrites the mention to the mentioned user GID" do
+          command.call
+          proposal.reload
+
+          expect(proposal.body["en"]).to include(mentioned_user.to_global_id.to_s)
+        end
+      end
+
+      context "when body has a user mention with a hyphen in the nickname" do
+        let(:mentioned_user) { create(:user, :confirmed, organization:, nickname: "test-user-hyphen") }
+        let(:body) { { en: "A reasonable proposal body mentioning @#{mentioned_user.nickname}" } }
+
+        it "rewrites the mention to the mentioned user GID" do
+          command.call
+          proposal.reload
+
+          expect(proposal.body["en"]).to include(mentioned_user.to_global_id.to_s)
+        end
       end
 
       context "when geocoding is enabled" do
@@ -141,51 +181,6 @@ describe Decidim::Proposals::Admin::UpdateProposal do
           it "broadcasts ok" do
             expect { command.call }.to broadcast(:ok)
           end
-        end
-      end
-
-      context "when title has a user mention" do
-        let(:mentioned_user) { create(:user, :confirmed, organization:) }
-        let(:form_params) do
-          {
-            title: { en: "A reasonable title mentioning @#{mentioned_user.nickname}" },
-            body: { en: "A reasonable proposal body" },
-            address:,
-            has_address:,
-            attachment: attachment_params,
-            documents: current_files,
-            add_documents: uploaded_files
-          }
-        end
-
-        it "does not rewrite the mention to the mentioned user GID" do
-          command.call
-          proposal.reload
-
-          expect(proposal.title.values.join(" ")).not_to include(mentioned_user.to_global_id.to_s)
-          expect(proposal.title.values.join(" ")).to include("@#{mentioned_user.nickname}")
-        end
-      end
-
-      context "when body has a user mention" do
-        let(:mentioned_user) { create(:user, :confirmed, organization:) }
-        let(:form_params) do
-          {
-            title: { en: "A reasonable proposal title" },
-            body: { en: "A reasonable body mentioning @#{mentioned_user.nickname}" },
-            address:,
-            has_address:,
-            attachment: attachment_params,
-            documents: current_files,
-            add_documents: uploaded_files
-          }
-        end
-
-        it "rewrites the mention to the mentioned user GID" do
-          command.call
-          proposal.reload
-
-          expect(proposal.body.values.join(" ")).to include(mentioned_user.to_global_id.to_s)
         end
       end
 
